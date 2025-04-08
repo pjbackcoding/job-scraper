@@ -1112,6 +1112,12 @@ class JobScraper:
                         company = company_element.text.strip() if company_element else "Unknown"
                         job_location = location_element.text.strip() if location_element else location
                         
+                        # Extract job URL
+                        job_url = None
+                        link_element = job.select_one('a.base-card__full-link') or job.select_one('a.job-search-card__link')
+                        if link_element and link_element.has_attr('href'):
+                            job_url = link_element['href']
+                        
                         job_data = {
                             'title': title,
                             'company': company,
@@ -1119,6 +1125,9 @@ class JobScraper:
                             'source': 'LinkedIn',
                             'scraped_date': datetime.now().strftime('%Y-%m-%d')
                         }
+                        
+                        if job_url:
+                            job_data['url'] = job_url
                         
                         self.jobs.append(job_data)
                         logger.debug(f"Added job: {title} at {company}")
@@ -1195,15 +1204,39 @@ class JobScraper:
                         job_location = location_element.text.strip() if location_element else location
                         description = description_element.text.strip() if description_element else ""
                         
+                        # Extract URL from title element or its parent
+                        job_url = None
+                        # Check if title_element is within an <a> tag or has an <a> parent
+                        parent_a = title_element.find_parent('a')
+                        if parent_a and parent_a.get('href'):
+                            href = parent_a.get('href')
+                            if href.startswith('/'):
+                                job_url = f"https://www.apec.fr{href}"
+                            else:
+                                job_url = href
+                        # If not found, look for any anchor within the job card
+                        else:
+                            card_anchor = job.find('a')
+                            if card_anchor and card_anchor.get('href'):
+                                href = card_anchor.get('href')
+                                if href.startswith('/'):
+                                    job_url = f"https://www.apec.fr{href}"
+                                else:
+                                    job_url = href
+                        
                         # Use our improved keyword matching with both title and description
                         if self._is_real_estate_job(title, description):
                             job_data = {
                                 'title': title,
                                 'company': company,
                                 'location': job_location,
+                                'description': description,
                                 'source': 'APEC',
                                 'scraped_date': datetime.now().strftime('%Y-%m-%d')
                             }
+                            
+                            if job_url:
+                                job_data['url'] = job_url
                             
                             # Avoid duplicates
                             if not any(job['title'] == title and job['company'] == company for job in self.jobs):
