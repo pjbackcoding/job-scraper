@@ -1,9 +1,10 @@
 # Real Estate Job Scraper for Paris
 
-An enhanced Python-based web scraper that collects real estate job listings in Paris from multiple job search websites and saves them to a JSON file. This scraper includes several reliability and safety features to ensure successful data collection and prevent issues.
+An enhanced Python-based web scraper that collects real estate job listings in Paris from multiple job search websites. The scraper includes both a command-line interface and a modern graphical user interface (GUI), allowing you to easily configure and run scraping operations and export results to JSON or Excel.
 
 ## Features
 
+### Data Collection Features
 - Scrapes real estate job listings from multiple sources:
   - Indeed France
   - LinkedIn
@@ -33,6 +34,20 @@ An enhanced Python-based web scraper that collects real estate job listings in P
   - Comprehensive console and file logging
   - Optional summary report generation
 
+### User Interface Features
+- Modern, user-friendly graphical interface (GUI) built with customtkinter
+- Configuration options for:
+  - Search queries (French and English)
+  - Target location
+  - Sites to scrape
+  - Number of pages to scrape
+- Real-time status updates and progress tracking
+- Interactive job listing display with search/filtering
+- Data management capabilities:
+  - Load existing results from JSON files
+  - Export job listings to Excel with formatted output
+  - Start/stop scraping operations at any time
+
 ## Installation
 
 1. Make sure you have Python 3.6+ installed
@@ -42,7 +57,11 @@ An enhanced Python-based web scraper that collects real estate job listings in P
 pip install -r requirements.txt
 ```
 
+This will install all necessary dependencies for both the CLI and GUI versions.
+
 ## Usage
+
+### Command Line Interface
 
 Basic usage:
 
@@ -51,6 +70,22 @@ python job_scraper.py
 ```
 
 This will scrape real estate jobs in Paris and save them to `real_estate_jobs_paris.json`.
+
+### Graphical User Interface
+
+To use the GUI version:
+
+```bash
+python job_scraper_gui.py
+```
+
+This will launch a modern, user-friendly interface where you can:
+- Configure search parameters
+- Select which job sites to scrape
+- Start and stop scraping operations
+- View and filter job listings
+- Load existing results from JSON files
+- Export data to Excel with formatted output
 
 ### Advanced Options
 
