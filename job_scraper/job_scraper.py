@@ -500,26 +500,49 @@ class JobScraper:
                         
                         # Extract job URL if available
                         job_url = None
-                        if hasattr(title_element, 'href') and title_element.get('href'):
+                        
+                        # Better approach to find the URL
+                        # 1. Try direct href on title element if it's an anchor
+                        if title_element.name == 'a' and title_element.has_attr('href'):
                             href = title_element['href']
                             if href.startswith('/'):
                                 job_url = f"https://fr.indeed.com{href}"
                             else:
                                 job_url = href
                         else:
-                            # Try finding URL in parent elements
-                            link_element = title_element.parent
-                            while link_element and not (hasattr(link_element, 'href') and link_element.get('href')):
-                                if link_element.name == 'a':
-                                    break
-                                link_element = link_element.parent
-                                
-                            if link_element and hasattr(link_element, 'href') and link_element.get('href'):
-                                href = link_element['href']
+                            # 2. Look for anchor inside title element (sometimes titles wrap anchors)
+                            anchor_in_title = title_element.find('a')
+                            if anchor_in_title and anchor_in_title.has_attr('href'):
+                                href = anchor_in_title['href']
                                 if href.startswith('/'):
                                     job_url = f"https://fr.indeed.com{href}"
                                 else:
                                     job_url = href
+                            else:
+                                # 3. Look for the nearest anchor parent
+                                parent_a = title_element.find_parent('a')
+                                if parent_a and parent_a.has_attr('href'):
+                                    href = parent_a['href']
+                                    if href.startswith('/'):
+                                        job_url = f"https://fr.indeed.com{href}"
+                                    else:
+                                        job_url = href
+                                else:
+                                    # 4. Search for any nearby job link
+                                    # First try in the job card
+                                    job_link = job.select_one('a[class*="job-"], a[class*="title"], a[href*="/viewjob"]')
+                                    if job_link and job_link.has_attr('href'):
+                                        href = job_link['href']
+                                        if href.startswith('/'):
+                                            job_url = f"https://fr.indeed.com{href}"
+                                        else:
+                                            job_url = href
+                        
+                        # Log for debugging
+                        if job_url:
+                            logger.debug(f"Found URL for {title}: {job_url}")
+                        else:
+                            logger.debug(f"No URL found for {title}")
                         
                         # Description: try multiple selectors
                         description = ""
