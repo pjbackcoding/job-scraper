@@ -305,7 +305,9 @@ class JobScraper:
         # Core real estate terms - high confidence match if these appear in title
         core_terms = [
             'immobilier', 'immobilière', 'real estate', 'property', 'foncier', 'foncière',
-            'biens immobiliers', 'realty', 'reit'
+            'biens immobiliers', 'realty', 'reit', 'asset manager', 'investment manager',
+            'fund manager', 'portfolio manager', 'underwriter', 'debt fund',
+            'structured finance', 'acquisitions', 'asset management'
         ]
         
         # Job titles - high confidence if these appear with property/real estate context
@@ -334,7 +336,10 @@ class JobScraper:
             'asset', 'actifs', 'portfolio', 'portefeuille', 'patrimoine', 'wealth',
             'capital', 'fund', 'fonds', 'trust', 'reit', 'project', 'projet',
             'facility', 'facilities', 'bâtiment', 'copropriété', 'syndic', 'notaire',
-            'notarial', 'legal', 'juridique', 'finance', 'financial', 'investment'
+            'notarial', 'legal', 'juridique', 'finance', 'financial', 'investment', 
+            'debt', 'dette', 'structured', 'structuré', 'underwriting', 'acquisition',
+            'asset management', 'fund management', 'investment management', 'am', 'aum', 
+            'analyste', 'analyst', 'private equity', 'institutional'
         ]
         
         # Check for core terms in title (highest confidence)
@@ -354,6 +359,12 @@ class JobScraper:
                                               for act in activities):
                 return True
         
+        # Check for investment/asset management terms specifically
+        investment_terms = ['investment', 'asset management', 'fund', 'portfolio', 'acquisition', 'debt']
+        for term in investment_terms:
+            if term in title_lower:
+                return True
+                
         # Check for multiple related fields (need at least 2)
         related_matches = 0
         for field in related_fields + activities + property_types:
