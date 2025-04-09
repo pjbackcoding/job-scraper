@@ -412,12 +412,12 @@ class JobScraper:
             # Randomize the user agent
             options.add_argument(f"user-agent={ua.random}")
             
-            # Try different query variations for better coverage
+            # Use broader real estate keywords without specific job titles
             additional_queries = [
                 query,
-                f"{query} agent",
-                f"{query} conseiller",
-                f"{query} immobilière"
+                "immobilier", 
+                "real estate",
+                "foncier"
             ]
             
             # Use query rotation to avoid detection and get more diverse results
@@ -588,12 +588,12 @@ class JobScraper:
             logger.warning("Selenium not available. Falling back to HTTP requests method.")
             
             # --- FALLBACK METHOD: Try with requests ---
-            # Add some additional search terms to improve results
+            # Use broader real estate keywords without specific job titles
             additional_queries = [
-                query, 
-                f"{query} agent", 
-                f"{query} conseiller", 
-                f"{query} manager"
+                query,
+                "immobilier", 
+                "real estate",
+                "foncier"
             ]
             
             for current_query in additional_queries[:2]:  # Limit to fewer queries in fallback mode
