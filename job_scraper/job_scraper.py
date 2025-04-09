@@ -426,7 +426,7 @@ class JobScraper:
             ]
             
             # Use query rotation to avoid detection and get more diverse results
-            for current_query in additional_queries[:2]:  # Limit to 2 queries for efficiency
+            for current_query in additional_queries[:4]:  # Utiliser 4 requêtes au lieu de 2
                 if self._check_timeout():
                     logger.warning("Time limit reached. Stopping scraping early.")
                     break
@@ -606,7 +606,7 @@ class JobScraper:
                 "underwriter immobilier"                
             ]
             
-            for current_query in additional_queries[:2]:  # Limit to fewer queries in fallback mode
+            for current_query in additional_queries[:4]:  # Utiliser 4 requêtes au lieu de 2
                 if self._check_timeout():
                     logger.warning("Time limit reached. Stopping scraping early.")
                     break
