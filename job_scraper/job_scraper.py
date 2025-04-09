@@ -412,12 +412,17 @@ class JobScraper:
             # Randomize the user agent
             options.add_argument(f"user-agent={ua.random}")
             
-            # Use broader real estate keywords without specific job titles
+            # Termes ultra spécifiques liés aux métiers de l'investissement immobilier, AM et dette
             additional_queries = [
-                query,
-                "immobilier", 
-                "real estate",
-                "foncier"
+                "investment manager immobilier",
+                "asset manager immobilier",
+                "fund manager real estate",
+                "analyste investissement immobilier",
+                "acquisitions immobilières",
+                "debt fund immobilier",
+                "structured finance real estate",
+                "portfolio manager immobilier",
+                "underwriter immobilier"                
             ]
             
             # Use query rotation to avoid detection and get more diverse results
@@ -588,12 +593,17 @@ class JobScraper:
             logger.warning("Selenium not available. Falling back to HTTP requests method.")
             
             # --- FALLBACK METHOD: Try with requests ---
-            # Use broader real estate keywords without specific job titles
+            # Termes ultra spécifiques liés aux métiers de l'investissement immobilier, AM et dette
             additional_queries = [
-                query,
-                "immobilier", 
-                "real estate",
-                "foncier"
+                "investment manager immobilier",
+                "asset manager immobilier",
+                "fund manager real estate",
+                "analyste investissement immobilier",
+                "acquisitions immobilières",
+                "debt fund immobilier",
+                "structured finance real estate",
+                "portfolio manager immobilier",
+                "underwriter immobilier"                
             ]
             
             for current_query in additional_queries[:2]:  # Limit to fewer queries in fallback mode
