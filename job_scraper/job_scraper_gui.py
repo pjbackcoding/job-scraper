@@ -27,7 +27,7 @@ from job_scraper import JobScraper, setup_logging
 
 # Set appearance mode and default color theme
 ctk.set_appearance_mode("System")  # Modes: "System", "Dark", "Light"
-ctk.set_default_color_theme("blue")  # Themes: "blue", "green", "dark-blue"
+ctk.set_default_color_theme("green")  # Using green theme for a fresher look
 
 # Configure logging
 logger = setup_logging(log_file="gui_scraper.log")
@@ -150,9 +150,9 @@ class ScrollableJobFrame(ctk.CTkScrollableFrame):
         
     def add_job(self, job: Dict[str, Any]):
         """Add a job listing to the scrollable frame."""
-        # Create a frame for the job with a border
-        job_frame = ctk.CTkFrame(self, fg_color=("gray90", "gray20"), corner_radius=10)
-        job_frame.pack(fill="x", padx=10, pady=5, expand=True)
+        # Create a frame for the job with improved visual styling
+        job_frame = ctk.CTkFrame(self, fg_color=("gray95", "gray17"), corner_radius=12, border_width=1, border_color=("gray80", "gray30"))
+        job_frame.pack(fill="x", padx=12, pady=7, expand=True)
         
         # Create top row with title and evaluate button
         top_row = ctk.CTkFrame(job_frame, fg_color="transparent")
@@ -178,15 +178,18 @@ class ScrollableJobFrame(ctk.CTkScrollableFrame):
             # Add underline to indicate clickable
             title_label.configure(text_color=("blue", "light blue"))
         
-        # Evaluate button
+        # Evaluate button with improved styling
         evaluate_button = ctk.CTkButton(
             top_row,
-            text="Evaluate",
+            text="💰 Evaluate",  # Added emoji for visual indicator
             command=lambda j=job, f=job_frame: self._evaluate_job(j, f),
-            width=80,
-            height=25,
-            fg_color=("royalblue3", "royalblue3"),
-            hover_color=("royalblue2", "royalblue2")
+            width=90,
+            height=28,
+            fg_color=("#3a7ebf", "#1f538d"),  # Better color contrast
+            hover_color=("#2d6db5", "#1a477a"),
+            corner_radius=8,
+            border_width=0,
+            font=ctk.CTkFont(size=12, weight="bold")
         )
         evaluate_button.grid(row=0, column=1, padx=(5, 5))
         
@@ -194,12 +197,15 @@ class ScrollableJobFrame(ctk.CTkScrollableFrame):
         if job_url:
             url_button = ctk.CTkButton(
                 top_row,
-                text="Voir l'annonce",
+                text="🔗 Voir l'annonce",  # Added emoji for visual indicator
                 command=lambda url=job_url: self._open_job_url(url),
-                width=100,
-                height=25,
-                fg_color=("green4", "green4"),
-                hover_color=("green3", "green3")
+                width=120,
+                height=28,
+                fg_color=("#2e8b57", "#1e5631"),  # Better color contrast
+                hover_color=("#227346", "#19472a"),
+                corner_radius=8,
+                border_width=0,
+                font=ctk.CTkFont(size=12, weight="bold")
             )
             url_button.grid(row=0, column=2, padx=(0, 0))
         
@@ -562,10 +568,20 @@ class JobScraperApp(ctk.CTk):
     def __init__(self):
         super().__init__()
         
-        # Configure the window
-        self.title("Job Scraper - Real Estate Paris")
-        self.geometry("900x700")
-        self.minsize(800, 600)
+        # Configure the window with better dimensions and title
+        self.title("Immobilier Job Finder - Paris")
+        self.geometry("1000x800")
+        self.minsize(900, 700)
+        
+        # Set window icon if available
+        try:
+            icon_path = os.path.join(os.path.dirname(__file__), "assets", "icon.png")
+            if os.path.exists(icon_path):
+                icon = Image.open(icon_path)
+                photo = ImageTk.PhotoImage(icon)
+                self.wm_iconphoto(True, photo)
+        except Exception as e:
+            logger.warning(f"Could not load application icon: {e}")
         
         # Initialize scraper state
         self.scraper = None
@@ -601,13 +617,22 @@ class JobScraperApp(ctk.CTk):
         header_frame = ctk.CTkFrame(self, corner_radius=0, fg_color="transparent")
         header_frame.grid(row=0, column=0, sticky="ew", padx=20, pady=(20, 0))
         
-        # App title
+        # App title with better styling
         title_label = ctk.CTkLabel(
             header_frame, 
-            text="Real Estate Job Scraper", 
-            font=ctk.CTkFont(size=24, weight="bold")
+            text="Immobilier Job Finder", 
+            font=ctk.CTkFont(family="Helvetica", size=28, weight="bold")
         )
         title_label.pack(side="left", padx=10)
+        
+        # Subtitle for context
+        subtitle_label = ctk.CTkLabel(
+            header_frame,
+            text="Specialized in Real Estate Investment",
+            font=ctk.CTkFont(size=14),
+            text_color=("gray40", "gray70")
+        )
+        subtitle_label.pack(side="left", padx=5, pady=8)
         
         # Version info
         version_label = ctk.CTkLabel(
@@ -647,16 +672,16 @@ class JobScraperApp(ctk.CTk):
     
     def create_sidebar(self, parent):
         """Create the sidebar with scraper controls."""
-        sidebar = ctk.CTkFrame(parent, width=250)
+        sidebar = ctk.CTkFrame(parent, width=280, corner_radius=15, border_width=1, border_color=("gray80", "gray30"))
         sidebar.grid(row=0, column=0, sticky="ns", padx=(0, 20))
         
-        # Settings label
+        # Settings label with better styling
         settings_label = ctk.CTkLabel(
             sidebar, 
-            text="Scraper Settings",
-            font=ctk.CTkFont(size=16, weight="bold")
+            text="⚙️ Scraper Settings",
+            font=ctk.CTkFont(size=18, weight="bold")
         )
-        settings_label.pack(anchor="w", padx=15, pady=(15, 10))
+        settings_label.pack(anchor="w", padx=15, pady=(20, 15))
         
         # Query terms
         query_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
@@ -714,13 +739,13 @@ class JobScraperApp(ctk.CTk):
         
         pages_frame.grid_columnconfigure(1, weight=1)
         
-        # Sites to scrape
+        # Sites to scrape with better styling
         sites_label = ctk.CTkLabel(
             sidebar, 
-            text="Sites to Scrape:",
-            font=ctk.CTkFont(size=14, weight="bold")
+            text="🔍 Sites to Scrape:",
+            font=ctk.CTkFont(size=16, weight="bold")
         )
-        sites_label.pack(anchor="w", padx=15, pady=(15, 5))
+        sites_label.pack(anchor="w", padx=15, pady=(20, 10))
         
         # Create checkboxes for each site
         self.indeed_var = tk.BooleanVar(value=True)
@@ -767,46 +792,67 @@ class JobScraperApp(ctk.CTk):
         button_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
         button_frame.pack(fill="x", padx=15, pady=(20, 15))
         
+        # Control buttons with improved styling and icons
         # Start scraping button
         self.start_button = ctk.CTkButton(
             button_frame, 
-            text="Start Scraping",
+            text="▶️ Start Scraping",
             command=self.start_scraping,
-            fg_color=("green4", "green4"),
-            hover_color=("green3", "green3")
+            fg_color=("#2e8b57", "#1e5631"),  # Better shade of green
+            hover_color=("#227346", "#19472a"),
+            corner_radius=10,
+            height=38,
+            font=ctk.CTkFont(size=14, weight="bold"),
+            border_width=1,
+            border_color=("gray80", "gray30")
         )
-        self.start_button.pack(fill="x", pady=(0, 5))
+        self.start_button.pack(fill="x", pady=(0, 8))
         
         # Stop scraping button (disabled by default)
         self.stop_button = ctk.CTkButton(
             button_frame, 
-            text="Stop Scraping",
+            text="⏹️ Stop Scraping",
             command=self.stop_scraping,
-            fg_color=("firebrick3", "firebrick3"),
-            hover_color=("firebrick2", "firebrick2"),
-            state="disabled"
+            fg_color=("#c0392b", "#7f1d1d"),  # Better shade of red
+            hover_color=("#962d22", "#630e0e"),
+            corner_radius=10,
+            height=38,
+            font=ctk.CTkFont(size=14, weight="bold"),
+            state="disabled",
+            border_width=1,
+            border_color=("gray80", "gray30")
         )
-        self.stop_button.pack(fill="x", pady=(0, 5))
+        self.stop_button.pack(fill="x", pady=(0, 8))
         
         # Load results button
         self.load_button = ctk.CTkButton(
             button_frame, 
-            text="Load Results",
+            text="📂 Load Results",
             command=self.load_results,
-            fg_color=("royalblue3", "royalblue3"),
-            hover_color=("royalblue2", "royalblue2")
+            fg_color=("#3a7ebf", "#1f538d"),  # Better shade of blue
+            hover_color=("#2d6db5", "#1a477a"),
+            corner_radius=10,
+            height=38,
+            font=ctk.CTkFont(size=14, weight="bold"),
+            border_width=1,
+            border_color=("gray80", "gray30")
         )
-        self.load_button.pack(fill="x", pady=(0, 5))
+        self.load_button.pack(fill="x", pady=(0, 8))
         
         # Export to Excel button
         self.export_button = ctk.CTkButton(
             button_frame, 
-            text="Export to Excel",
+            text="📊 Export to Excel",
             command=self.export_to_excel,
-            fg_color=("darkorchid3", "darkorchid3"),
-            hover_color=("darkorchid2", "darkorchid2")
+            fg_color=("#8e44ad", "#5b2c6f"),  # Better shade of purple
+            hover_color=("#7d3c98", "#4a235a"),
+            corner_radius=10,
+            height=38,
+            font=ctk.CTkFont(size=14, weight="bold"),
+            border_width=1,
+            border_color=("gray80", "gray30")
         )
-        self.export_button.pack(fill="x", pady=(0, 5))
+        self.export_button.pack(fill="x", pady=(0, 8))
     
     def create_job_listings(self, parent):
         """Create the area for displaying job listings."""
@@ -817,16 +863,16 @@ class JobScraperApp(ctk.CTk):
         listings_frame.grid_rowconfigure(0, weight=0)  # Header 
         listings_frame.grid_rowconfigure(1, weight=1)  # Listings area
         
-        # Results header
+        # Results header with better styling
         results_header = ctk.CTkFrame(listings_frame, fg_color="transparent")
-        results_header.grid(row=0, column=0, sticky="ew", padx=20, pady=10)
+        results_header.grid(row=0, column=0, sticky="ew", padx=25, pady=15)
         results_header.grid_columnconfigure(1, weight=1)  # Make middle space expandable
         
-        # Left side - Results count
+        # Left side - Results count with better styling
         self.results_label = ctk.CTkLabel(
             results_header, 
-            text="Job Listings (0 results)",
-            font=ctk.CTkFont(size=16, weight="bold")
+            text="📋 Job Listings (0 results)",
+            font=ctk.CTkFont(size=18, weight="bold")
         )
         self.results_label.grid(row=0, column=0, sticky="w")
         
@@ -859,14 +905,17 @@ class JobScraperApp(ctk.CTk):
         )
         sort_order_button.pack(side="left", padx=5)
         
-        # Evaluate All button
+        # Evaluate All button with improved styling
         evaluate_all_button = ctk.CTkButton(
             controls_frame,
-            text="Evaluate All",
+            text="💰 Evaluate All",
             command=self._evaluate_all_jobs,
-            width=100,
-            fg_color=("green4", "green4"),
-            hover_color=("green3", "green3")
+            width=120,
+            height=32,
+            fg_color=("#2e8b57", "#1e5631"),
+            hover_color=("#227346", "#19472a"),
+            corner_radius=8,
+            font=ctk.CTkFont(size=13, weight="bold")
         )
         evaluate_all_button.pack(side="left", padx=(20, 5))
         
@@ -884,13 +933,13 @@ class JobScraperApp(ctk.CTk):
         )
         collapsed_switch.pack(side="left")
         
-        # Job listings scrollable frame
+        # Job listings scrollable frame with better styling
         self.jobs_frame = ScrollableJobFrame(listings_frame)
-        self.jobs_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 20))
+        self.jobs_frame.grid(row=1, column=0, sticky="nsew", padx=25, pady=(0, 25))
     
     def create_status_bar(self):
         """Create the status bar at the bottom of the UI."""
-        status_bar = ctk.CTkFrame(self, height=25, corner_radius=0)
+        status_bar = ctk.CTkFrame(self, height=30, corner_radius=0, border_width=1, border_color=("gray85", "gray25"))
         status_bar.grid(row=2, column=0, sticky="ew")
         
         self.status_label = ctk.CTkLabel(
