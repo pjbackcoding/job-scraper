@@ -1,0 +1,45 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# Logs
+*.log
+logs/
+scraper.log
+
+# Temporary files
+*.swp
+*~
+*.bak
+
+# Cached job results (optional - comment out if you want to track these)
+# real_estate_jobs_paris.json
+
+# IDE specific files
+.idea/
+.vscode/
+.DS_Store
+
+# Chrome WebDriver
+chromedriver
+chromedriver.exe
+
+# Temporary HTML files
+google_sample.html
+
+# Backup files
+interrupted_scraper_*.json
+
+# API configuration (containing sensitive keys)
+.api_config

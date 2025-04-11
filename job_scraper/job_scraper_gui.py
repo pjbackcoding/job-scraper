@@ -141,6 +141,7 @@ class ScrollableJobFrame(ctk.CTkScrollableFrame):
         self.sort_ascending = False  # Default sort order (newest first)
         self.collapsed_view = False  # Default expanded view
         self.evaluating_all = False  # Flag to track if we're currently evaluating all jobs
+        self.date_filter = None  # Date filter (None = show all dates)
         
     def clear_jobs(self):
         """Clear all job listings from the frame."""
@@ -275,28 +276,85 @@ class ScrollableJobFrame(ctk.CTkScrollableFrame):
         
         return job_frame
         
-    def filter_jobs(self, filter_text: str):
-        """Filter job listings based on the search text."""
-        self.current_filter = filter_text.lower()
+    def filter_jobs(self, filter_text=None, date_filter=None):
+        """Filter job listings based on search text and/or date filter.
         
-        # Show/hide job frames based on filter
+        Args:
+            filter_text: Text to search for in job fields (if None, uses current filter)
+            date_filter: Date filter option (e.g., "Last week", "Last month")
+        """
+        # Update filters if provided
+        if filter_text is not None:
+            self.current_filter = filter_text.lower()
+            
+        if date_filter is not None:
+            self.date_filter = date_filter
+        
+        # Show/hide job frames based on combined filters
         for frame in self.job_frames:
             job_data = frame.job_data
-            title = job_data.get("title", "").lower()
-            company = job_data.get("company", "").lower()
-            location = job_data.get("location", "").lower()
-            source = job_data.get("source", "").lower()
-            description = job_data.get("description", "").lower() if "description" in job_data else ""
             
-            # Check if filter text appears in any field
-            if (self.current_filter in title or 
+            # Check text filter match
+            text_match = self._matches_text_filter(job_data)
+            
+            # Check date filter match
+            date_match = self._matches_date_filter(job_data)
+            
+            # Only show if both filters match
+            if text_match and date_match:
+                frame.pack(fill="x", padx=12, pady=7, expand=True)
+            else:
+                frame.pack_forget()
+                
+    def _matches_text_filter(self, job_data):
+        """Check if a job matches the current text filter."""
+        if not self.current_filter:
+            return True
+            
+        # Extract fields to search
+        title = job_data.get("title", "").lower()
+        company = job_data.get("company", "").lower()
+        location = job_data.get("location", "").lower()
+        source = job_data.get("source", "").lower()
+        description = job_data.get("description", "").lower() if "description" in job_data else ""
+        
+        # Check if filter text appears in any field
+        return (self.current_filter in title or 
                 self.current_filter in company or 
                 self.current_filter in location or
                 self.current_filter in source or
-                self.current_filter in description):
-                frame.pack(fill="x", padx=10, pady=5, expand=True)
+                self.current_filter in description)
+                
+    def _matches_date_filter(self, job_data):
+        """Check if a job matches the current date filter."""
+        # If no date filter is set, show all jobs
+        if not self.date_filter or self.date_filter == "Any time":
+            return True
+            
+        # Get job date and convert to datetime
+        job_date_str = job_data.get('scraped_date', '')
+        if not job_date_str:
+            return True  # Include jobs without dates to be safe
+            
+        try:
+            job_date = datetime.strptime(job_date_str, '%Y-%m-%d').date()
+            today = datetime.now().date()
+            days_ago = (today - job_date).days
+            
+            # Apply date filters
+            if self.date_filter == "Last 24 hours":
+                return days_ago <= 1
+            elif self.date_filter == "Last week":
+                return days_ago <= 7
+            elif self.date_filter == "Last 2 weeks":
+                return days_ago <= 14
+            elif self.date_filter == "Last month":
+                return days_ago <= 31
             else:
-                frame.pack_forget()
+                return True
+        except (ValueError, TypeError):
+            # If date parsing fails, include the job
+            return True
                 
     def toggle_collapsed_view(self, collapsed: bool):
         """Toggle between collapsed and expanded view for all job listings."""
@@ -739,6 +797,39 @@ class JobScraperApp(ctk.CTk):
         
         pages_frame.grid_columnconfigure(1, weight=1)
         
+        # Date filter
+        date_filter_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
+        date_filter_frame.pack(fill="x", padx=15, pady=5)
+        
+        date_filter_label = ctk.CTkLabel(
+            date_filter_frame, 
+            text="📅 Date Filter:",
+            font=ctk.CTkFont(weight="bold")
+        )
+        date_filter_label.grid(row=0, column=0, sticky="w", pady=5)
+        
+        self.date_filter_var = tk.StringVar(value="Any time")
+        date_filter_options = [
+            "Any time", 
+            "Last 24 hours", 
+            "Last week", 
+            "Last 2 weeks", 
+            "Last month"
+        ]
+        date_filter_dropdown = ctk.CTkOptionMenu(
+            date_filter_frame,
+            values=date_filter_options,
+            variable=self.date_filter_var,
+            command=self._on_date_filter_changed,
+            width=140,
+            fg_color=("#3a7ebf", "#1f538d"),
+            button_color=("#2d6db5", "#1a477a"),
+            button_hover_color=("#2a65a7", "#164570")
+        )
+        date_filter_dropdown.grid(row=0, column=1, sticky="ew", padx=(10, 0), pady=5)
+        
+        date_filter_frame.grid_columnconfigure(1, weight=1)
+        
         # Sites to scrape with better styling
         sites_label = ctk.CTkLabel(
             sidebar, 
@@ -959,11 +1050,21 @@ class JobScraperApp(ctk.CTk):
         """Update the pages value label when the slider changes."""
         pages = int(value)
         self.pages_value_label.configure(text=str(pages))
+        
+    def _on_date_filter_changed(self, selected_option):
+        """Handle changes to the date filter dropdown."""
+        # Apply the filter to current job listings
+        if self.job_data:
+            self.jobs_frame.filter_jobs(date_filter=selected_option)
+            
+            # Count visible jobs to update result count
+            visible_count = sum(1 for frame in self.jobs_frame.job_frames if frame.winfo_viewable())
+            self.results_label.configure(text=f"📋 Job Listings ({visible_count} filtered results)")
     
     def _on_search_changed(self, *args):
         """Handle changes to the search bar."""
         search_text = self.search_var.get()
-        self.jobs_frame.filter_jobs(search_text)
+        self.jobs_frame.filter_jobs(text=search_text)
     
     def _on_sort_changed(self, selected_option):
         """Handle changes to the sort dropdown."""
@@ -1158,6 +1259,13 @@ class JobScraperApp(ctk.CTk):
         # Apply collapsed view if enabled
         if self.jobs_frame.collapsed_view:
             self.jobs_frame.toggle_collapsed_view(True)
+            
+        # Apply current filters (both search text and date)
+        search_text = self.search_var.get()
+        date_filter = self.date_filter_var.get()
+        
+        # Apply both filters at once
+        self.jobs_frame.filter_jobs(filter_text=search_text, date_filter=date_filter)
     
     def start_scraping(self):
         """Start the job scraping process."""

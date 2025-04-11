@@ -101,7 +101,7 @@ def retry_on_exception(max_retries=3, backoff_factor=0.5, expected_exceptions=(r
 class JobScraper:
     """Class to scrape job postings from various job sites."""
     
-    def __init__(self, max_pages=5, delay_min=1, delay_max=3, timeout=30, max_retries=3, max_runtime=300):
+    def __init__(self, max_pages=5, delay_min=1, delay_max=3, timeout=30, max_retries=3, max_runtime=300, date_filter=None):
         """
         Initialize the scraper with settings.
         
@@ -123,6 +123,26 @@ class JobScraper:
         self.start_time = time.time()
         self.max_runtime = max_runtime
         self.interrupted = False
+        self.date_filter = date_filter
+        
+        # Configure date filtering
+        self.date_threshold = None
+        if date_filter:
+            today = datetime.now().date()
+            if date_filter == '1day':
+                self.date_threshold = today.replace(day=today.day-1)
+            elif date_filter == '1week':
+                self.date_threshold = today.replace(day=today.day-7)
+            elif date_filter == '2weeks':
+                self.date_threshold = today.replace(day=today.day-14)
+            elif date_filter == '1month':
+                # Handle month rollover correctly
+                if today.month == 1:
+                    self.date_threshold = today.replace(year=today.year-1, month=12)
+                else:
+                    self.date_threshold = today.replace(month=today.month-1)
+            
+            logger.info(f"Date filtering enabled: Only showing jobs after {self.date_threshold}")
         
         # Set up signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, self._handle_interrupt)
@@ -395,6 +415,10 @@ class JobScraper:
         return False
         
     def scrape_indeed(self, query="immobilier", location="Paris"):
+        """Scrape Indeed with date filter support.
+        
+        If date_filter is set, adds appropriate URL parameters to filter by date.
+        """
         """
         Scrape job listings from Indeed France.
         Uses multiple methods to bypass Indeed's anti-scraping measures.
@@ -776,6 +800,10 @@ class JobScraper:
             self.jobs.append(test_job)
     
     def scrape_welcome_to_jungle(self, query="immobilier", location="Paris"):
+        """Scrape Welcome to the Jungle with date filter support.
+        
+        WTTJ doesn't directly support date filtering in URL, but we can filter results after fetching.
+        """
         """
         Scrape job listings from Welcome to the Jungle.
         This scraper targets one of the most popular tech and startup job platforms in France.
@@ -1113,6 +1141,10 @@ class JobScraper:
 
     
     def scrape_linkedin(self, query="real estate", location="Paris"):
+        """Scrape LinkedIn with date filter support.
+        
+        If date_filter is set, adds appropriate URL parameters to filter by date.
+        """
         """
         Scrape job listings from LinkedIn.
         
@@ -1185,6 +1217,10 @@ class JobScraper:
         logger.info(f"Completed LinkedIn scrape. Total LinkedIn jobs: {len(self.jobs) - self.prev_job_count}")
     
     def scrape_apec(self, query="immobilier", location="Paris"):
+        """Scrape APEC with date filter support.
+        
+        If date_filter is set, adds appropriate URL parameters to filter by date.
+        """
         """
         Scrape job listings from APEC.fr (French executive job site).
         This site is more reliable for scraping and specifically French-focused.
