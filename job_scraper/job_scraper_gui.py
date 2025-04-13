@@ -1278,6 +1278,20 @@ class JobScraperApp(ctk.CTk):
         location = self.location_var.get()
         max_pages = self.max_pages_var.get()
         
+        # Get date filter selection from UI
+        date_filter = None
+        selected_date_filter = self.date_filter_var.get()
+        if selected_date_filter != "Any time":
+            # Convert UI date filter to scraper date filter format
+            date_filter_map = {
+                "Last 24 hours": "1day",
+                "Last week": "1week",
+                "Last 2 weeks": "2weeks",
+                "Last month": "1month"
+            }
+            date_filter = date_filter_map.get(selected_date_filter)
+            logger.info(f"Using date filter: {date_filter}")
+        
         # Check which sites to scrape
         sites_to_scrape = {
             "indeed": self.indeed_var.get(),
@@ -1311,12 +1325,12 @@ class JobScraperApp(ctk.CTk):
         # Start scraping in a separate thread
         self.scraping_thread = threading.Thread(
             target=self._run_scraper, 
-            args=(query_fr, query_en, location, max_pages, sites_to_scrape)
+            args=(query_fr, query_en, location, max_pages, sites_to_scrape, date_filter)
         )
         self.scraping_thread.daemon = True
         self.scraping_thread.start()
     
-    def _run_scraper(self, query_fr, query_en, location, max_pages, sites_to_scrape):
+    def _run_scraper(self, query_fr, query_en, location, max_pages, sites_to_scrape, date_filter=None):
         """Run the scraper in a background thread to avoid blocking the UI."""
         try:
             # In a thread, we need to avoid using signals, but still use the real scraping functionality
@@ -1373,7 +1387,8 @@ class JobScraperApp(ctk.CTk):
                 delay_max=4.0,
                 timeout=30,
                 max_retries=3,
-                max_runtime=3600  # 1 hour max runtime
+                max_runtime=3600,  # 1 hour max runtime
+                date_filter=date_filter  # Pass the date filter to the scraper
             )
             
             # Create a counter for progress tracking
@@ -1407,8 +1422,15 @@ class JobScraperApp(ctk.CTk):
             
             # Save the results
             self._update_ui_status("Saving results...", progress=0.95)
-            output_file = f"real_estate_jobs_{location.lower().replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.json"
-            self.scraper.save_to_json(filename=output_file)
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            output_file = f"real_estate_jobs_{location.lower().replace(' ', '_')}_{timestamp}.json"
+            
+            # First, save to the timestamped file directly
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(self.scraper.jobs, f, ensure_ascii=False, indent=2)
+                
+            # Then use save_to_json for the default file which handles proper merging with existing jobs
+            self.scraper.save_to_json(filename="real_estate_jobs_paris.json")
             
             # Get the results and update UI
             self.job_data = self.scraper.jobs

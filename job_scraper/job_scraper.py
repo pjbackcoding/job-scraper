@@ -248,6 +248,7 @@ class JobScraper:
         title = job_data.get('title', '').lower()
         company = job_data.get('company', '').lower()
         location = job_data.get('location', '').lower()
+        job_url = job_data.get('url', '').lower()
         
         # Skip empty titles
         if not title or title == 'unknown':
@@ -257,9 +258,16 @@ class JobScraper:
         for existing_job in self.jobs:
             existing_title = existing_job.get('title', '').lower()
             existing_company = existing_job.get('company', '').lower()
+            existing_url = existing_job.get('url', '').lower()
+            
+            # If URL is available for both jobs and they match, it's definitely a duplicate
+            if job_url and existing_url and job_url == existing_url:
+                logger.debug(f"Duplicate based on URL: {title} at {company}")
+                return True
             
             # If exact match on title and company, it's a duplicate
             if existing_title == title and existing_company == company:
+                logger.debug(f"Duplicate based on exact title+company match: {title} at {company}")
                 return True
         
         # Second check: Similar titles at the same company with fuzzy matching
@@ -270,8 +278,8 @@ class JobScraper:
             
             # Same company
             if existing_company == company:
-                # Check for high similarity in titles (80% match)
-                if self._similarity_score(existing_title, title) > 0.8:
+                # Check for high similarity in titles (90% match - increased from 80% to be less aggressive)
+                if self._similarity_score(existing_title, title) > 0.9:
                     # If locations are also similar
                     if not location or not existing_location or location in existing_location or existing_location in location:
                         return True
@@ -1332,17 +1340,103 @@ class JobScraper:
         jobs_found = len(self.jobs) - start_count
         logger.info(f"Completed APEC scrape. Total APEC jobs: {jobs_found}")
     
+    def load_from_json(self, filename="real_estate_jobs_paris.json"):
+        """
+        Load existing job data from a JSON file.
+        
+        Args:
+            filename (str): Name of the JSON file to load data from
+            
+        Returns:
+            list: List of job dictionaries loaded from file, or empty list if file doesn't exist
+        """
+        existing_jobs = []
+        try:
+            if os.path.exists(filename):
+                with open(filename, 'r', encoding='utf-8') as f:
+                    existing_jobs = json.load(f)
+                logger.info(f"Loaded {len(existing_jobs)} existing jobs from {filename}")
+            else:
+                logger.info(f"No existing job file found at {filename}. Will create a new one.")
+        except Exception as e:
+            logger.error(f"Error loading jobs from {filename}: {str(e)}")
+        return existing_jobs
+    
     def save_to_json(self, filename="real_estate_jobs_paris.json"):
         """
         Save the scraped job data to a JSON file.
+        If the file already exists, load existing jobs and append new ones without duplicates.
         
         Args:
             filename (str): Name of the JSON file to save data to
         """
         try:
+            # Load existing jobs if file exists
+            existing_jobs = self.load_from_json(filename)
+            new_jobs_count = 0
+            
+            # If there are existing jobs, merge with new jobs
+            if existing_jobs:
+                # Create a temporary copy of current jobs
+                current_jobs = self.jobs.copy()
+                
+                # Replace self.jobs with existing jobs temporarily
+                self.jobs = existing_jobs
+                
+                # Add each new job if it's not a duplicate
+                for job in current_jobs:
+                    if not self._is_duplicate(job):
+                        self.jobs.append(job)
+                        new_jobs_count += 1
+                
+                original_jobs_count = len(existing_jobs)
+                logger.info(f"Added {new_jobs_count} new jobs to {original_jobs_count} existing jobs")
+            
+            # Apply more thorough deduplication to catch similar jobs with different text
+            original_count = len(self.jobs)
+            
+            # Create a more sophisticated job key that includes multiple fields
+            # and normalizes text to better match duplicates
+            unique_jobs = []
+            seen_jobs = set()
+            
+            for job in self.jobs:
+                # Create a more comprehensive key for better deduplication
+                title = job.get('title', '').lower().strip()
+                company = job.get('company', '').lower().strip()
+                
+                # Include URL in the key if available (makes deduplication less aggressive)
+                url_part = ""
+                if 'url' in job:
+                    # Extract domain and path from URL to use as part of the key
+                    url = job['url']
+                    try:
+                        from urllib.parse import urlparse
+                        parsed_url = urlparse(url)
+                        # Just use the domain and path, not query parameters
+                        url_part = f"|{parsed_url.netloc}{parsed_url.path}"
+                    except:
+                        # If URL parsing fails, just use the URL as is
+                        url_part = f"|{url[-30:]}"
+                
+                # Create a key using multiple fields
+                job_key = f"{title}|{company}{url_part}"
+                
+                if job_key not in seen_jobs:
+                    seen_jobs.add(job_key)
+                    unique_jobs.append(job)
+            
+            # Update with deduplicated list
+            self.jobs = unique_jobs
+            duplicates_removed = original_count - len(unique_jobs)
+            if duplicates_removed > 0:
+                logger.info(f"Additional deduplication removed {duplicates_removed} similar jobs")
+            
+            # Save the combined and deduplicated jobs list
             with open(filename, 'w', encoding='utf-8') as f:
                 json.dump(self.jobs, f, ensure_ascii=False, indent=2)
-            logger.info(f"Successfully saved {len(self.jobs)} jobs to {filename}")
+            
+            logger.info(f"Successfully saved {len(self.jobs)} total jobs to {filename}")
         except Exception as e:
             logger.error(f"Error saving jobs to {filename}: {str(e)}")
 
@@ -1544,34 +1638,7 @@ def main():
             last_backup = current_time
             logger.info(f"Periodic backup saved with {len(scraper.jobs)} jobs")
         
-        # Check for duplicates and clean up data with a more robust approach
-        original_count = len(scraper.jobs)
-        
-        # Create a more sophisticated job key that includes multiple fields
-        # and normalizes text to better match duplicates
-        unique_jobs = []
-        seen_jobs = set()
-        
-        for job in scraper.jobs:
-            # Create a more comprehensive key for better deduplication
-            title = job.get('title', '').lower().strip()
-            company = job.get('company', '').lower().strip()
-            
-            # Remove common words that don't help differentiate jobs
-            for word in ['le', 'la', 'les', 'de', 'du', 'des', 'en', 'à', 'et', 'the', 'a', 'an', 'in', 'for', 'of']:
-                title = title.replace(f' {word} ', ' ')
-            
-            # Create a key using both fields
-            job_key = f"{title}|{company}"
-            
-            if job_key not in seen_jobs:
-                seen_jobs.add(job_key)
-                unique_jobs.append(job)
-        
-        # Update with deduplicated list
-        scraper.jobs = unique_jobs
-        duplicates_removed = original_count - len(unique_jobs)
-        logger.info(f"Removed {duplicates_removed} duplicate jobs")
+        # Deduplication is now handled by the save_to_json method
         
         # Save all collected jobs to JSON file
         scraper.save_to_json(filename=args.output)
